@@ -10,12 +10,22 @@
 #include "json.hpp"
 
 // for convenience
+Eigen::VectorXd convert(vector<double, allocator<double>> vector);
+
 using json = nlohmann::json;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
+
+Eigen::VectorXd vectorToEigen(vector<double> v){
+  Eigen::VectorXd result(v.size());
+  for (int i = 0; i < v.size(); i++) {
+    result[i] = v[i];
+  }
+  return result;
+}
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -101,6 +111,27 @@ int main() {
           double steer_value;
           double throttle_value;
 
+          // want 3rd order polynomial fit, use 1 for now to match quiz
+          // need to change psides0, epsi for higher order
+
+          // convert vector to VectorXd
+          auto coeffs = polyfit(vectorToEigen(ptsx), vectorToEigen(ptsy), 1);
+
+          // TODO: calculate the cross track error-- need 2 dimensional error!
+          double cte = polyeval(coeffs, px) - py;
+          // TODO: calculate the orientation error
+          double epsi = psi - atan(coeffs[1]);
+
+          Eigen::VectorXd state(6);
+          state << px, py, psi, v, cte, epsi;
+
+
+          auto vars = mpc.Solve(state, coeffs);
+          double steering_result = vars[0];
+          steer_value = steering_result * -1 / deg2rad(25);
+          throttle_value = vars[1];
+
+
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
@@ -183,3 +214,5 @@ int main() {
   }
   h.run();
 }
+
+
