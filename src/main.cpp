@@ -116,9 +116,14 @@ int main() {
 
           // convert vector to VectorXd
           auto coeffs = polyfit(vectorToEigen(ptsx), vectorToEigen(ptsy), 1);
+          std::cout << "coeffs " << coeffs << std::endl;
+
+          // y = mx + b
+          double b = coeffs[0];
+          double m = coeffs[1];
 
           // TODO: calculate the cross track error-- need 2 dimensional error!
-          double cte = polyeval(coeffs, px) - py;
+          double cte = abs(m * px - py + b) / sqrt(pow(m, 2) + pow(-1, 2));
           // TODO: calculate the orientation error
           double epsi = psi - atan(coeffs[1]);
 
@@ -145,6 +150,12 @@ int main() {
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
 
+          // Convert from Map to Vehicle coordinates:
+          for (int i = 0; i < 6; i++) {
+            mpc_x_vals.push_back((ptsx[i] - px) * cos(-psi) - (ptsy[i] - py) * sin(-psi));
+            mpc_y_vals.push_back((ptsx[i] - px) * sin(-psi) + (ptsy[i] - py) * cos(-psi));
+          }
+
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
@@ -154,6 +165,12 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
+
+          // Convert from Map to Vehicle coordinates:
+          for (int i = 0; i < 5; i++) {
+            next_x_vals.push_back((vars[2 + 2 * i] - px) * cos(-psi) - (vars[3 + 2 * i] - py) * sin(-psi));
+            next_y_vals.push_back((vars[2 + 2 * i] - px) * sin(-psi) + (vars[3 + 2 * i] - py) * cos(-psi));
+          }
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
