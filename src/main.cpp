@@ -101,6 +101,11 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
+          double old_steering_angle = j[1]["steering_angle"];
+          double old_throttle = j[1]["throttle"];
+
+          // sign flip angle from sim
+          old_steering_angle *= -1;
 
           /*
           * TODO: Calculate steering angle and throttle using MPC.
@@ -110,6 +115,13 @@ int main() {
           */
           double steer_value;
           double throttle_value;
+
+          // simulate car motion during actuator delay
+          double latency = .1;
+          px = px + v * cos(psi) * latency;
+          py = py + v * sin(psi) * latency;
+          psi = psi + v * old_steering_angle / 2.67 * latency;
+          v = v + old_throttle * latency;
 
           // convert all points to car coordinate system
           Eigen::VectorXd ptsx_car(ptsx.size());
