@@ -6,7 +6,7 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 40;
+size_t N = 10;
 double dt = 0.1;
 
 // This value assumes the model presented in the classroom is used.
@@ -258,17 +258,14 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   auto cost = solution.obj_value;
   std::cout << "Cost " << cost << std::endl;
 
-  // TODO: Return the first actuator values. The variables can be accessed with
-  // `solution.x[i]`.
-  //
-  // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
-  // creates a 2 element double vector.
-  return {(solution.x[delta_start] + solution.x[delta_start + 1] + solution.x[delta_start + 2]) / 3.0
-          , (solution.x[a_start] + solution.x[a_start + 1] + solution.x[a_start + 2]) / 3.0,
-          solution.x[x_start + 1],   solution.x[y_start + 1],
-          solution.x[x_start + 2],   solution.x[y_start + 2],
-          solution.x[x_start + 3],   solution.x[y_start + 3],
-          solution.x[x_start + 4],   solution.x[y_start + 4],
-          solution.x[x_start + 5],   solution.x[y_start + 5]
-          };
+  vector<double> result;
+  result.push_back((solution.x[delta_start] + solution.x[delta_start + 1] + solution.x[delta_start + 2]) / 3.0);
+  result.push_back((solution.x[a_start] + solution.x[a_start + 1] + solution.x[a_start + 2]) / 3.0);
+  // Return all calculated points
+  for(int i = 0; i < N - 1; i++) {
+    result.push_back(solution.x[x_start + i + 1]);
+    result.push_back(solution.x[y_start + i + 1]);
+  }
+
+  return result;
 }
