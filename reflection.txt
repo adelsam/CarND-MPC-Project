@@ -7,15 +7,21 @@ to update psi, and acceleration to update velocity.
 
 
 Timestamp Length & Elapsed Duration
-I picked 1/10s as the timestamp length and 10 as the number of timestamps.  I tried higher numbers (25, 40, etc),
-but I had trouble solving for the path with larger problem spaces.  10 samples seemed to give the solver
-sufficient information to control the car.  For a real-world scenario, a few seconds would be better than one
-second, but in MPC, all of the projected path is thrown out after each cycle, so it's not a big concern.
+I picked 1/10s as the timestamp length and 20 as the number of timestamps.  1/10s is a good small value to approximate
+the continuous movement of the car.  Using 20 steps gives MPC 2 seconds of horizon which allows for realistic path
+prediction while still having reasonable computational complexity.
+
+
+Cost Function
+I experimented with a variety of cost functions in the MPC engine, finding that it was more helpful to penalize epsi
+than cte in order to get a smooth car path.  I also increased the constants for steering angle and changes in steering
+angle to help smooth out the planned path.
 
 
 Polynomial Fitting and MPC Preprocessing
-All of the landmark points are converted into the car's coordinate system prior to fitting.  I convert the
-points prior to applying any latency adjustment to the car's px, py, and psi to limit the additional noise from
+All of the landmark points are converted into the car's coordinate system prior to fitting.  Since the car may
+be turning during the actuator latency, I use the car's average psi during the latency to rotate the points from
+map coordinates to car coordinates (but use the car's initial (x, y) position) to limit any additional noise from
 that process.  Since I still want the MPC path for the car to account for the position of the car after the
 actuator latency, I use the projected position of the car as the initial state passed into the MPC solver.
 
@@ -23,12 +29,7 @@ actuator latency, I use the projected position of the car as the initial state p
 Deal with Latency
 As discussed, I tried to project both the position of the car and the landmarks prior to running MPC, but I ran
 into a lot of issues with noisy measurements, so instead, I deal with latency by predicting the position of the
-car (based on the previous steering angle and velocity) and using that as the initial state passed into the MPC
+car (based on the previous steering angle and velocity) and use that as the initial state passed into the MPC
 solver.  I ignore the car's linear acceleration since it has a small impact on velocity over the short dt  of .1s.
 
-Latency is a minimum of 100ms (or .1s, the same as the interval chosen for dt), but there could be some
-additional latency due to the time taken for the solver to run and for the network communication between the
-engine and the simulator.  Since I don't know exactly when the actuation will be applied, I average the first
-three actuator inputs coming out of the solver and use that actuation (as suggested by other students).  This
-also offers some additional smoothing.
 

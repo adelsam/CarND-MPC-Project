@@ -120,9 +120,13 @@ int main() {
           // convert all points to car coordinate system
           Eigen::VectorXd ptsx_car(ptsx.size());
           Eigen::VectorXd ptsy_car(ptsy.size());
+
+          // partial latency adjstment.  Car is turning, use average psi between
+          // [0, .1] seconds (hence 0.05).
+          double psi_eval = psi + v * old_steering_angle / 2.67 * 0.05;
           for (int i = 0; i < ptsx.size(); i++) {
-            ptsx_car[i] = (ptsx[i] - px) * cos(-psi) - (ptsy[i] - py) * sin(-psi);
-            ptsy_car[i] = (ptsx[i] - px) * sin(-psi) + (ptsy[i] - py) * cos(-psi);
+            ptsx_car[i] = (ptsx[i] - px) * cos(-psi_eval) - (ptsy[i] - py) * sin(-psi_eval);
+            ptsy_car[i] = (ptsx[i] - px) * sin(-psi_eval) + (ptsy[i] - py) * cos(-psi_eval);
           }
 
           auto coeffs = polyfit(ptsx_car, ptsy_car, 3);
@@ -138,11 +142,11 @@ int main() {
           py = v * sin(psi) * latency;
 
           double cte = polyeval(coeffs, px);
-          double epsi = psi - atan(coeffs[1] + 2*coeffs[2]*px + 2*coeffs[3]*pow(px,2));
+          double epsi = psi - atan(coeffs[1] + 2 * coeffs[2] * px + 3 * coeffs[3] * pow(px,2));
 
           Eigen::VectorXd state(6);
           // Car after latency
-          state << px, py, psi, v, cte, epsi;
+          state << px, py, 0, v, cte, epsi;
 
           auto vars = mpc.Solve(state, coeffs);
           double steering_result = vars[0];
@@ -164,9 +168,9 @@ int main() {
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
 
-          for (int i = 0; i < 9; i++) {
-            mpc_x_vals.push_back(vars[2 + 2 * i]);
-            mpc_y_vals.push_back(vars[3 + 2 * i]);
+          for (int i = 1; i < vars.size() / 2; i++) {
+            mpc_x_vals.push_back(vars[2 * i]);
+            mpc_y_vals.push_back(vars[1 + 2 * i]);
           }
 
           msgJson["mpc_x"] = mpc_x_vals;
