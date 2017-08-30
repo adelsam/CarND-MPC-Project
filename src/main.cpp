@@ -116,12 +116,6 @@ int main() {
           double steer_value;
           double throttle_value;
 
-          // simulate car motion during actuator delay
-          double latency = .1;
-          px = px + v * cos(psi) * latency;
-          py = py + v * sin(psi) * latency;
-          psi = psi + v * old_steering_angle / 2.67 * latency;
-          v = v + old_throttle * latency;
 
           // convert all points to car coordinate system
           Eigen::VectorXd ptsx_car(ptsx.size());
@@ -134,14 +128,21 @@ int main() {
           auto coeffs = polyfit(ptsx_car, ptsy_car, 3);
           std::cout << "coeffs " << coeffs << std::endl;
 
-          // TODO: calculate the cross track error-- need 2 dimensional error!
-          double cte = coeffs[0]; // polyeval(coeffs, 0); @ x=0
-          // TODO: calculate the orientation error
-          double epsi = atan(coeffs[1]); // + 2 * px * coeffs[2] + 3 * coeffs[3] * pow(px, 2) @ x=0
+          double mph_to_mps = 0.44704;
+          v *= mph_to_mps; // mph -> m/s
+
+          // simulate car motion during actuator delay
+          double latency = .1;
+          psi = v * old_steering_angle / 2.67 * latency;
+          px = v * cos(psi) * latency;
+          py = v * sin(psi) * latency;
+
+          double cte = polyeval(coeffs, px);
+          double epsi = psi - atan(coeffs[1] + 2*coeffs[2]*px + 2*coeffs[3]*pow(px,2));
 
           Eigen::VectorXd state(6);
-          // Car at origin, orientation 0
-          state << 0, 0, 0, v, cte, epsi;
+          // Car after latency
+          state << px, py, psi, v, cte, epsi;
 
           auto vars = mpc.Solve(state, coeffs);
           double steering_result = vars[0];
