@@ -1,0 +1,33 @@
+The Model
+I used an MPC controller very similar to what was used in the lessons/quiz.  The state is a 5-dimensional vector
+consisting of [px, py, psi, v, cte, epsi].  There are two actuators: steering angle and acceleration (positive =
+throttle/negative = brake).  The update equations were taken from the lessons:, I use the cos() component of the
+velocity to update x, the sin() component of velocity to update y, steering angle (modified by the CoG constant
+to update psi, and acceleration to update velocity.
+
+
+Timestamp Length & Elapsed Duration
+I picked 1/10s as the timestamp length and 10 as the number of timestamps.  I tried higher numbers (25, 40, etc),
+but I had trouble fitting the polynomial with those larger problem spaces.  10 samples seemed to give the solver
+sufficient information to control the car.  For a real-world scenario, a few seconds would be better than one
+second, but in MPC, all of the projected path is thrown out after each cycle, so it's not a big concern.
+
+Polynomial Fitting and MPC Preprocessing
+All of the landmark points are converted into the car's coordinate system in the main method.  I convert the
+points prior to applying any latency adjustment to the car's px, py, and psi to limit the additional noise from
+that process.  Since I still want the MPC path for the car to account for the position of the car after the
+actuator latency, I use the projected position of the car as the initial state passed into the MPC solver.
+
+
+Deal with Latency
+As discussed, I tried to project both the position of the car and the landmarks prior to running MPC, but I ran
+into a lot of issues with noise measurements, so instead, I deal with latency by predicting the position of the
+car (based on the previous steering angle and velocity) and using that as the initial state passed into the MPC
+solver.  I ignore the car's linear acceleration since it has a small impact on velocity over the short dt  of .1s.
+
+Latency is a minimum of 100ms (or .1s, the same as the interval chosen for dt), but there could be some
+additional latency due to the time taken for the solver to run and for the network communication between the
+simulator and the engine.  Since I don't know exactly when the actuation will be applied, I average the first
+three actuator inputs coming out of the solver and use that actuation (as suggested by other students).  This
+also offers some additional smoothing.
+
