@@ -1,5 +1,5 @@
 The Model
-I used an MPC controller very similar to what was used in the lessons/quiz.  The state is a 5-dimensional vector
+I used an MPC controller very similar to what was used in the lessons/quiz.  The state is a 6-dimensional vector
 consisting of [px, py, psi, v, cte, epsi].  There are two actuators: steering angle and acceleration (positive =
 throttle/negative = brake).  The update equations were taken from the lessons:, I use the cos() component of the
 velocity to update x, the sin() component of velocity to update y, steering angle (modified by the CoG constant
